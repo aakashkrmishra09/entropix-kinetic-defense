@@ -26,6 +26,14 @@ It uses a **3D Digital Twin** to monitor heat and **Sovereign AI** (DeepSeek + G
 
 ---
 
+## 🔮 Future Roadmap
+
+* **Phase 1 (Current):** Simulation & AI Logic Verification.
+* **Phase 2:** Hardware Integration (Connecting Python output to Arduino Servos).
+* **Phase 3:** Predictive AI (Using DeepSeek to predict heat spikes *before* they happen).
+* **Phase 4:** Swarm Defense (Coordinating multiple turrets for mega-scale data centers).
+
+
 ## 🛠️ Tech Stack
 
 * **Frontend:** Streamlit, Plotly (3D Heatmaps & Gauge Charts)
