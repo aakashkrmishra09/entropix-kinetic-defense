@@ -49,3 +49,4 @@ It uses a **3D Digital Twin** to monitor heat and **Sovereign AI** (DeepSeek + G
 **1. Clone the Repository**
 ```bash
 git clone [https://github.com/aakashkrmishra09/entropix-kinetic-defense.git](https://github.com/aakashkrmishra09/entropix-kinetic-defense.git)
+USE - streamlit run app.py 
