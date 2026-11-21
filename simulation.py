@@ -1,6 +1,6 @@
+import os
+from typing import List, Optional, Tuple
 import numpy as np
-import streamlit as st
-from typing import List
 
 # --- PHYSICS CONSTANTS ---
 GRID_SIZE = 10
@@ -13,88 +13,108 @@ DIRECT_COOLING_POWER = 60.0
 NEIGHBOR_COOLING_POWER = 15.0
 HISTORY_LEN = 50
 
-class ServerRoom:
-    """
-    Physics Engine for Entropix.
-    Manages the 2D thermal grid state, thermodynamic diffusion, 
-    stochastic load generation, and kinetic cooling interventions.
-    """
-    
-    def __init__(self, size: int = GRID_SIZE):
+
+class ThermalSimulationCore:
+    """Pure, framework-independent thermal grid and kinetic cooling engine."""
+
+    def __init__(self, size: int = GRID_SIZE, seed: Optional[int] = None):
         self.size = size
-        self._initialize_state()
+        self.rng = np.random.default_rng(seed)
+        self.grid = np.full((self.size, self.size), AMBIENT_TEMP, dtype=float)
+        self._create_random_hotspots(1)
+        self.history: List[float] = [AMBIENT_TEMP] * HISTORY_LEN
 
-    def _initialize_state(self):
-        """Ensures session state variables exist on first load."""
-        if 'grid' not in st.session_state:
-            st.session_state.grid = np.full((self.size, self.size), AMBIENT_TEMP)
-            self._create_random_hotspots(1)
-        
-        if 'savings' not in st.session_state:
-            st.session_state.savings = 0.0
-
-        if 'history' not in st.session_state:
-            st.session_state.history = [AMBIENT_TEMP] * HISTORY_LEN
-
-    def _create_random_hotspots(self, count: int):
+    def _create_random_hotspots(self, count: int) -> None:
         for _ in range(count):
-            rx, ry = np.random.randint(0, self.size, 2)
-            st.session_state.grid[rx, ry] += np.random.randint(20, 40)
+            rx, ry = self.rng.integers(0, self.size, size=2)
+            self.grid[rx, ry] += float(self.rng.integers(20, 41))
 
     def _simulate_load_spikes(self, grid: np.ndarray) -> np.ndarray:
-        if np.random.rand() < SPIKE_PROBABILITY:
+        if self.rng.random() < SPIKE_PROBABILITY:
             num_spikes = 1
-            if np.random.rand() < MULTI_THREAT_CHANCE:
-                num_spikes = np.random.randint(2, 4)
-            
+            if self.rng.random() < MULTI_THREAT_CHANCE:
+                num_spikes = int(self.rng.integers(2, 4))
+
             for _ in range(num_spikes):
-                rx, ry = np.random.randint(0, self.size, 2)
-                grid[rx, ry] += np.random.randint(50, 70)
+                rx, ry = self.rng.integers(0, self.size, size=2)
+                grid[rx, ry] += float(self.rng.integers(50, 71))
         return grid
 
     def update_heat(self) -> np.ndarray:
-        grid = st.session_state.grid
+        grid = self.grid
         new_grid = grid.copy()
-        
-        # Thermal Diffusion
+
         for i in range(self.size):
             for j in range(self.size):
                 neighbors = []
-                if i > 0: neighbors.append(grid[i-1, j])
-                if i < self.size-1: neighbors.append(grid[i+1, j])
-                if j > 0: neighbors.append(grid[i, j-1])
-                if j < self.size-1: neighbors.append(grid[i, j+1])
-                
+                if i > 0:
+                    neighbors.append(grid[i - 1, j])
+                if i < self.size - 1:
+                    neighbors.append(grid[i + 1, j])
+                if j > 0:
+                    neighbors.append(grid[i, j - 1])
+                if j < self.size - 1:
+                    neighbors.append(grid[i, j + 1])
+
                 if neighbors:
                     avg_temp = sum(neighbors) / len(neighbors)
                     new_grid[i, j] += (avg_temp - grid[i, j]) * DIFFUSION_RATE
 
-        # Load Spikes
-        new_grid = self._simulate_load_spikes(new_grid)
+        self.grid = self._simulate_load_spikes(new_grid)
 
-        # Update State
-        st.session_state.grid = new_grid
-        
-        # Update History
-        max_t = np.max(new_grid)
-        st.session_state.history.append(max_t)
-        if len(st.session_state.history) > HISTORY_LEN:
-            st.session_state.history.pop(0)
-            
-        return st.session_state.grid
+        max_t = float(np.max(self.grid))
+        self.history.append(max_t)
+        if len(self.history) > HISTORY_LEN:
+            self.history.pop(0)
 
-    def apply_cooling(self, target_coords: List[int]):
-        x, y = target_coords
-        grid = st.session_state.grid
-        
-        # Kinetic Cooling Impact
-        grid[x, y] -= DIRECT_COOLING_POWER
-        
-        # Blast Radius
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
+        return self.grid
+
+    def apply_cooling(self, target_coords: List[int]) -> np.ndarray:
+        x, y = int(target_coords[0]), int(target_coords[1])
+        x = max(0, min(self.size - 1, x))
+        y = max(0, min(self.size - 1, y))
+
+        self.grid[x, y] -= DIRECT_COOLING_POWER
+
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < self.size and 0 <= ny < self.size:
-                    grid[nx, ny] -= NEIGHBOR_COOLING_POWER
-        
-        st.session_state.grid = np.maximum(grid, MIN_SAFE_TEMP)
+                    self.grid[nx, ny] -= NEIGHBOR_COOLING_POWER
+
+        self.grid = np.maximum(self.grid, MIN_SAFE_TEMP)
+        return self.grid
+
+
+class ServerRoom:
+    """Streamlit session-state adapter around ThermalSimulationCore."""
+
+    def __init__(self, size: int = GRID_SIZE):
+        import streamlit as st
+
+        self.st = st
+        self.size = size
+        self._initialize_state()
+
+    def _initialize_state(self) -> None:
+        if "sim_core" not in self.st.session_state:
+            self.st.session_state.sim_core = ThermalSimulationCore(size=self.size)
+        if "grid" not in self.st.session_state:
+            self.st.session_state.grid = self.st.session_state.sim_core.grid
+        if "savings" not in self.st.session_state:
+            self.st.session_state.savings = 0.0
+        if "history" not in self.st.session_state:
+            self.st.session_state.history = self.st.session_state.sim_core.history
+
+    def update_heat(self) -> np.ndarray:
+        core: ThermalSimulationCore = self.st.session_state.sim_core
+        grid = core.update_heat()
+        self.st.session_state.grid = grid
+        self.st.session_state.history = core.history
+        return grid
+
+    def apply_cooling(self, target_coords: List[int]) -> None:
+        core: ThermalSimulationCore = self.st.session_state.sim_core
+        grid = core.apply_cooling(target_coords)
+        self.st.session_state.grid = grid
+        self.st.session_state.history = core.history
