@@ -1,52 +1,74 @@
 # 🛡️ Entropix // Sovereign Kinetic Defense
 
-### **AI-Driven Autonomous Thermal Regulation System for Data Centers by Aakash Kumar Mishra - GalacticEdge Team**
-**Powered by TELUS Sovereign Cloud & DeepSeek-V3 Physics Engine**
+[![Entropix CI](https://github.com/aakashkrmishra09/entropix-kinetic-defense/actions/workflows/ci.yml/badge.svg)](https://github.com/aakashkrmishra09/entropix-kinetic-defense/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://aakash-entropix-kinetic-defense.streamlit.app/)
+
+**AI-Driven Autonomous Thermal Regulation & Fault-Tolerant Control Prototype**  
+*Built by Aakash Kumar Mishra* | **[Launch Live 3D Digital Twin →](https://aakash-entropix-kinetic-defense.streamlit.app/)**
 
 ---
 
-## 🚨 The Problem
-Modern data centers are inefficient. When **one server overheats**, current HVAC systems cool the **entire room**, wasting millions of dollars in energy.
-
-## ⚡ The Solution: Entropix
-Entropix is a **Kinetic Defense System**. Instead of cooling the air, it uses a **robotic cooling turret** to physically target specific server racks with precision airflow.
-
-It uses a **3D Digital Twin** to monitor heat and **Sovereign AI** (DeepSeek + Gemma) to calculate the exact Pitch and Yaw required to neutralize thermal threats instantly.
+## 🚨 Problem Statement
+Traditional data-center HVAC systems cool entire server halls in response to localized rack hotspots, wasting substantial energy. **Entropix** models a targeted **3-axis kinetic cooling turret** paired with a **10×10 3D thermal digital twin** to detect localized thermal spikes and direct cooling airflow precisely to the highest-risk sector.
 
 ---
 
-## 🌟 Key Features
+## 🏗️ System Architecture & Safety Guardrails
 
-* **🇨🇦 Data Sovereignty First:** All telemetry is processed locally on TELUS Sovereign Cloud. No critical infrastructure data leaves Canada.
-* **🧠 DeepSeek Threat Engine:** Analyzes 10x10 thermal grids to detect anomalies and calculate 3D kinetic vectors (Yaw/Pitch) in real-time.
-* **🤖 Autonomous Response:** The system can "snap" to multiple fire targets in a priority queue without human intervention.
-* **📍 3D Digital Twin:** Real-time holographic visualization of the server room's thermal topography.
-* **🛑 Emergency SCRAM:** Hard-wired manual override to instantly kill all autonomous systems in case of AI hallucination.
-* **🗣️ Voice Command Interface:** Uses Gemma-3 to generate military-grade status reports (TTS) during breach events.
+\\	ext
+[10x10 Thermal Grid (simulation.py)]
+          │
+          ▼
+[Emergency SCRAM Check (app.py)] ──► (If Triggered: Immediate Lockdown)
+          │
+          ▼
+[AI Reasoning Engine (ai_engine.py)]
+   ├── Primary: DeepSeek-V3 JSON Inference (Target [row, col], Yaw, Pitch)
+   └── Fallback: Deterministic Peak-Cell & Angle Solver (Offline / Timeout Safe)
+          │
+          ▼
+[Actuator Guardrails (app.py)] ──► Clamps Yaw [-90°, 90°], Pitch [-45°, 45°], Grid Bounds
+          │
+          ▼
+[Kinetic Cooling + Immutable Audit Log + Gemma-3 / Offline Alerting]
+\
+### Key Engineering Highlights
+- **Decoupled Physics Core (\simulation.py\):** Separates pure NumPy thermodynamic diffusion, stochastic multi-hotspot load spikes, and cooling blast-radius math (\ThermalSimulationCore\) from Streamlit session state for deterministic unit testing.
+- **Resilient LLM Integration (\i_engine.py\):** Queries DeepSeek-V3 for structured JSON targeting and Gemma-3 for voice alerts via environment-configured endpoints, with automatic fallback to a deterministic peak-thermal solver when offline or unconfigured.
+- **Deterministic Safety Guardrails (\pp.py\):** Enforces a hard **Emergency SCRAM** shutdown override and clamps all LLM-predicted \yaw\, \pitch\, and grid coordinates to safe mechanical bounds before actuation.
+- **Automated Verification (\	ests/\ + GitHub Actions):** Includes \pytest\ unit tests verifying thermal bounds, cooling safety floors, fallback targeting, and coordinate clamping.
 
 ---
-
-## 🔮 Future Roadmap
-
-* **Phase 1 (Current):** Simulation & AI Logic Verification.
-* **Phase 2:** Hardware Integration (Connecting Python output to Arduino Servos).
-* **Phase 3:** Predictive AI (Using DeepSeek to predict heat spikes *before* they happen).
-* **Phase 4:** Swarm Defense (Coordinating multiple turrets for mega-scale data centers).
-
 
 ## 🛠️ Tech Stack
-
-* **Frontend:** Streamlit, Plotly (3D Heatmaps & Gauge Charts)
-* **Physics Core:** Custom Python Simulation (Thermal Diffusion & Kinetic Impact)
-* **AI Logic:** DeepSeek-V3 (Reasoning) via OpenAI API standard
-* **Voice Synthesis:** Google Gemma-3 (Text Generation) + gTTS
-* **Data Processing:** NumPy, Pandas
+- **Simulation & Numerics:** Python 3.10+, NumPy, Pandas
+- **AI & Audio:** DeepSeek-V3 (OpenAI-compatible API), Google Gemma-3, gTTS
+- **Visualization & UI:** Streamlit, Plotly (3D Surface Topography & Threat Gauge)
+- **Testing & CI:** Pytest, GitHub Actions
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Local Setup & Execution
 
 **1. Clone the Repository**
-```bash
-git clone [https://github.com/aakashkrmishra09/entropix-kinetic-defense.git](https://github.com/aakashkrmishra09/entropix-kinetic-defense.git)
-USE - streamlit run app.py 
+\\ash
+git clone https://github.com/aakashkrmishra09/entropix-kinetic-defense.git
+cd entropix-kinetic-defense
+\
+**2. Create a Virtual Environment & Install Dependencies**
+\\ash
+python -m venv venv
+.\venv\Scripts\activate
+pip install -r requirements.txt
+\
+**3. Configure Environment Variables (Optional)**
+The system runs out-of-the-box in deterministic fallback mode without API keys. To enable live DeepSeek-V3 and Gemma-3 endpoints:
+\\ash
+copy .env.example .env
+# Add your DEEPSEEK_API_KEY and GEMMA_API_KEY inside .env
+\
+**4. Run Tests & Launch Dashboard**
+\\ash
+pytest -v
+streamlit run app.py
+\
